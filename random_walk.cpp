@@ -7,15 +7,42 @@
 #include <cstdint>
 #include <cstdlib> // for getenv
 
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+#endif
+#include <iostream>
+
+
 // === CONFIG ===
 const int64_t num_simulations = 1'000'000;
 const int64_t progress_interval = 1'000;
 const int start_index_offset = 0;  // For partial runs
-const std::string output_prefix = "thread_";  // Output: thread_0_output.csv, etc.
+const std::string output_prefix = "data/thread_";  // Output: thread_0_output.csv, etc.
 const int default_thread_count = 12;
+
+#define ALL_PREMMISIONS 0777
 // ==============
 
+
+void CreateDataDir() {
+    // Check and create "data" directory if needed
+    struct stat st = {0};
+    if (stat("data", &st) == -1) {
+        #ifdef _WIN32
+            _mkdir("data");
+        #else
+            mkdir("data", ALL_PREMMISIONS);
+        #endif
+        std::cout << "Created data directory.\n";
+    }
+}
+
 int main() {
+    CreateDataDir();
+
     // === Thread Limit Setup ===
     const char* env_threads = std::getenv("OMP_NUM_THREADS");
     if (!env_threads) {
