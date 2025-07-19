@@ -46,3 +46,6 @@
 
 # Project Output Files
 data/*
+
+# Build Binary
+random_walk_simulator
