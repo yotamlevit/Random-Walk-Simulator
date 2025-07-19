@@ -18,7 +18,7 @@ SRC       := random_walk.cpp
 ifeq ($(UNAME_S),Darwin)
     CXX := /opt/homebrew/opt/llvm/bin/clang++
     CXXFLAGS := -std=c++17 -fopenmp -O3 -Wall -I/opt/homebrew/opt/llvm/include
-    LDFLAGS := -L/opt/homebrew/opt/llvm/lib -lomp
+    LDFLAGS := -L/opt/homebrew/opt/llvm/lib
 endif
 
 # Adjust for Windows (MSYS2/MinGW)
