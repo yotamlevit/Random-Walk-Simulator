@@ -11,10 +11,11 @@
 #include <string>     // For string
 
 #ifdef _WIN32
-#include <direct.h>
+    #include <direct.h>
+    #define mkdir _mkdir
 #else
-#include <sys/stat.h>
-#include <sys/types.h>
+    #include <sys/stat.h>
+    #include <sys/types.h>
 #endif
 
 
@@ -26,21 +27,25 @@ const std::string output_prefix = "data/thread_";  // Output: thread_0_output.cs
 const int default_thread_count = 12;
 int64_t num_simulations = default_num_simulations;
 
-#define ALL_PREMMISIONS 0777
+#define ALL_PERMISSIONS 0777
 // ==============
 
 
 void CreateDataDir() {
-    // Check and create "data" directory if needed
-    struct stat st = {0};
-    if (stat("data", &st) == -1) {
-        #ifdef _WIN32
-            _mkdir("data");
-        #else
-            mkdir("data", ALL_PREMMISIONS);
-        #endif
-        std::cout << "Created data directory.\n";
-    }
+    #ifdef _WIN32
+        if (mkdir("data") != 0 && errno != EEXIST) {
+            std::perror("Failed to create 'data' directory");
+            exit(1);
+        }
+    #else
+        struct stat st = {0};
+        if (stat("data", &st) == -1) {
+            if (mkdir("data", ALL_PERMISSIONS) != 0) {
+                std::perror("Failed to create 'data' directory");
+                exit(1);
+            }
+        }
+    #endif
 }
 
 int main(int argc, char* argv[]) {
