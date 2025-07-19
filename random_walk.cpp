@@ -1,25 +1,54 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <random>
-#include <omp.h>
 #include <chrono>
-#include <fstream>
+#include <omp.h>
 #include <cstdint>
+#include <cstdlib> // for getenv
+
+// === CONFIG ===
+const int64_t num_simulations = 1'000'000;
+const int64_t progress_interval = 10'000;
+const int start_index_offset = 0;  // For partial runs
+const std::string output_prefix = "thread_";  // Output: thread_0_output.csv, etc.
+const int default_thread_count = 12;
+// ==============
 
 int main() {
-    const int num_simulations = 1'000'000;
-    std::vector<uint64_t> steps_to_zero(num_simulations);
+    // === Thread Limit Setup ===
+    const char* env_threads = std::getenv("OMP_NUM_THREADS");
+    if (!env_threads) {
+        omp_set_num_threads(default_thread_count);
+        std::cout << "Using default thread limit: " << default_thread_count << "\n";
+    } else {
+        std::cout << "Using thread count from OMP_NUM_THREADS: " << env_threads << "\n";
+    }
 
-    auto start = std::chrono::steady_clock::now();  // Start timer
+    auto start_time = std::chrono::steady_clock::now();
+
+    int thread_count = 0;  // Will store actual number of threads used
 
     #pragma omp parallel
     {
+        #pragma omp single
+        thread_count = omp_get_num_threads();  // Set once from a single thread
+
+        int thread_id = omp_get_thread_num();
         std::random_device rd;
-        std::mt19937 gen(rd() ^ omp_get_thread_num()); // thread-safe RNG
+        std::mt19937 gen(rd() ^ thread_id);
         std::uniform_real_distribution<> dis(0.0, 1.0);
 
-        #pragma omp for
-        for (int i = 0; i < num_simulations; ++i) {
+        std::vector<std::pair<int64_t, uint64_t>> local_buffer;
+        int64_t local_counter = 0;
+
+        std::string filename = output_prefix + std::to_string(thread_id) + "_output.csv";
+
+        #pragma omp critical
+        std::cout << "[Thread " << thread_id << "] Started.\n";
+
+        #pragma omp for schedule(dynamic, 1000)
+        for (int64_t i = 0; i < num_simulations; ++i) {
             int pos = 5;
             uint64_t steps = 0;
             while (pos > 0) {
@@ -27,41 +56,42 @@ int main() {
                 pos += (rnd < 0.5) ? -1 : 1;
                 ++steps;
             }
-            steps_to_zero[i] = steps;
 
-            // Print progress every 10,000 walks
-            if (i % 10'000 == 0) {
+            local_buffer.emplace_back(start_index_offset + i, steps);
+            ++local_counter;
+
+            if (local_counter % progress_interval == 0) {
                 auto now = std::chrono::steady_clock::now();
-                std::chrono::duration<double> elapsed = now - start;
+                std::chrono::duration<double> elapsed = now - start_time;
+
+                std::ofstream out(filename, std::ios::app);
+                for (const auto& [idx, step] : local_buffer)
+                    out << idx << "," << step << "\n";
+                out.close();
+                local_buffer.clear();
+
                 #pragma omp critical
-                {
-                    std::cout << "[Progress] Walk " << i
-                              << " completed at " << (elapsed.count() / 60.0)
-                              << " minutes.\n";
-                }
+                std::cout << "[Thread " << thread_id << "] Wrote "
+                          << local_counter << " results at "
+                          << (elapsed.count() / 60.0) << " minutes.\n";
             }
+        }
+
+        // Final flush
+        if (!local_buffer.empty()) {
+            std::ofstream out(filename, std::ios::app);
+            for (const auto& [idx, step] : local_buffer)
+                out << idx << "," << step << "\n";
+            out.close();
         }
     }
 
-    auto end = std::chrono::steady_clock::now();  // End timer
-    std::chrono::duration<double> total_elapsed = end - start;
-    std::cout << "Total runtime: " << total_elapsed.count() << " seconds\n";
-    std::cout << "Used " << omp_get_max_threads() << " threads.\n";
+    auto end_time = std::chrono::steady_clock::now();
+    std::chrono::duration<double> total = end_time - start_time;
 
-    // Save results to file
-    std::ofstream out_file("random_walk_results.csv");
-    out_file << "walk_index,steps\n";
-    for (int i = 0; i < num_simulations; ++i) {
-        out_file << i << "," << steps_to_zero[i] << "\n";
-    }
-    out_file.close();
-    std::cout << "Results written to random_walk_results.csv\n";
-
-    // Compute and print average
-    uint64_t total_steps = 0;
-    for (auto steps : steps_to_zero) total_steps += steps;
-    std::cout << "Average steps to reach 0: "
-              << (double)total_steps / num_simulations << "\n";
+    std::cout << "Finished all walks.\n";
+    std::cout << "Used " << thread_count << " threads.\n";
+    std::cout << "Total runtime: " << total.count() << " seconds\n";
 
     return 0;
 }
