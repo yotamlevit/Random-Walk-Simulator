@@ -10,7 +10,8 @@
 2. [Output Folder](#output-folder)
 3. [Run](#run)
 4. [Configuration](#configuration)
-5. [License](#license)
+5. [Releases](#releases)
+6. [License](#license)
 
 ---
 
@@ -184,6 +185,31 @@ Total runtime: 45.23 seconds
 ```
 
 ---
+
+## Releases
+
+Prebuilt executables for Linux and Windows are provided on the [GitHub Releases](https://github.com/<your-username>/<your-repo>/releases) page.
+
+- **To download:**  
+  Go to the [Releases page](https://github.com/<your-username>/<your-repo>/releases), choose the latest release, and download the binary for your platform:
+    - `random_walk_simulator-linux` (Linux)
+    - `random_walk_simulator-windows.exe` (Windows)
+
+- **How are releases built?**  
+  Each release is automatically built and published by GitHub Actions CI when a new tag is pushed (e.g., `v1.0.0`).  
+  The workflow builds the binaries for both Linux and Windows and uploads them as release assets.
+
+- **How to create a new release (for maintainers):**
+    1. Make sure your code is up to date and committed.
+    2. Create a new tag, for example:
+       ```bash
+       git tag v1.0.0
+       git push origin v1.0.0
+       ```
+    3. GitHub Actions will build and publish the binaries automatically to the Releases page.
+
+---
+
 
 ## License
 
