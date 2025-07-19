@@ -68,15 +68,40 @@ This strategy is especially effective for workloads with unpredictable or highly
 
 ## Run
 
+You can run the simulator as follows:
+
 ```bash
 ./random_walk_simulator
 ```
+By default, the program will use the built-in default number of threads (12 unless you changed it in the code).
 
-You can control the thread count by setting the `OMP_NUM_THREADS` environment variable:
+### Set the number of threads via command-line flag
+
+You can now control the number of threads with the `--threads` or `-t` flag:
 
 ```bash
-export OMP_NUM_THREADS=8
-./random_walk_simulator
+./random_walk_simulator --threads 8
+# or
+./random_walk_simulator -t 8
+```
+This overrides the default thread count for this execution (12).
+
+
+### Set the number of walks via command-line flag
+
+You can now control the number of simulated walks with the `--walks` or `-w` flag:
+
+```bash
+./random_walk_simulator --walks 50000
+# or
+./random_walk_simulator -w 50000
+```
+
+### Full Command Line
+```bash
+./random_walk_simulator --walks 50000 --threads 10
+# or
+./random_walk_simulator -w 50000 -t 8
 ```
 
 ---

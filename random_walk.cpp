@@ -6,6 +6,9 @@
 #include <omp.h>
 #include <cstdint>
 #include <cstdlib> // for getenv
+#include <cstring>    // For strcmp
+#include <sstream>    // For istringstream
+#include <string>     // For string
 
 #ifdef _WIN32
 #include <direct.h>
@@ -13,15 +16,15 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #endif
-#include <iostream>
 
 
 // === CONFIG ===
-const int64_t num_simulations = 1'000'000;
+const int64_t default_num_simulations = 1'000'000;
 const int64_t progress_interval = 1'000;
 const int start_index_offset = 0;  // For partial runs
 const std::string output_prefix = "data/thread_";  // Output: thread_0_output.csv, etc.
 const int default_thread_count = 12;
+int64_t num_simulations = default_num_simulations;
 
 #define ALL_PREMMISIONS 0777
 // ==============
@@ -40,17 +43,32 @@ void CreateDataDir() {
     }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     CreateDataDir();
 
-    // === Thread Limit Setup ===
-    const char* env_threads = std::getenv("OMP_NUM_THREADS");
-    if (!env_threads) {
-        omp_set_num_threads(default_thread_count);
-        std::cout << "Using default thread limit: " << default_thread_count << "\n";
-    } else {
-        std::cout << "Using thread count from OMP_NUM_THREADS: " << env_threads << "\n";
+    int thread_limit = default_thread_count;
+
+    // Parse --threads N argument
+    for (int i = 1; i < argc; ++i) {
+        if ((std::strcmp(argv[i], "--threads") == 0 || std::strcmp(argv[i], "-t") == 0) && i + 1 < argc) {
+            std::istringstream iss(argv[i + 1]);
+            if (!(iss >> thread_limit) || thread_limit <= 0) {
+                std::cerr << "Invalid thread count after --threads/-t\n";
+                return 1;
+            }
+            ++i; // skip the value
+        } else if ((std::strcmp(argv[i], "--walks") == 0 || std::strcmp(argv[i], "-w") == 0) && i + 1 < argc) {
+            std::istringstream iss(argv[i + 1]);
+            if (!(iss >> num_simulations) || num_simulations <= 0) {
+                std::cerr << "Invalid number after --walks/-w\n";
+                return 1;
+            }
+            ++i; // skip the value
+        }
     }
+
+    omp_set_num_threads(thread_limit);
+    std::cout << "Using thread limit: " << thread_limit << "\n";
 
     auto start_time = std::chrono::steady_clock::now();
 
