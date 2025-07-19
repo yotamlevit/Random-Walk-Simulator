@@ -10,7 +10,7 @@ int main() {
     const int num_simulations = 1'000'000;
     std::vector<uint64_t> steps_to_zero(num_simulations);
 
-    auto start = std::chrono::high_resolution_clock::now();  // Start timer
+    auto start = std::chrono::steady_clock::now();  // Start timer
 
     #pragma omp parallel
     {
@@ -28,12 +28,24 @@ int main() {
                 ++steps;
             }
             steps_to_zero[i] = steps;
+
+            // Print progress every 10,000 walks
+            if (i % 10'000 == 0) {
+                auto now = std::chrono::steady_clock::now();
+                std::chrono::duration<double> elapsed = now - start;
+                #pragma omp critical
+                {
+                    std::cout << "[Progress] Walk " << i
+                              << " completed at " << (elapsed.count() / 60.0)
+                              << " minutes.\n";
+                }
+            }
         }
     }
 
-    auto end = std::chrono::high_resolution_clock::now();  // End timer
-    std::chrono::duration<double> elapsed = end - start;
-    std::cout << "Total runtime: " << elapsed.count() << " seconds\n";
+    auto end = std::chrono::steady_clock::now();  // End timer
+    std::chrono::duration<double> total_elapsed = end - start;
+    std::cout << "Total runtime: " << total_elapsed.count() << " seconds\n";
     std::cout << "Used " << omp_get_max_threads() << " threads.\n";
 
     // Save results to file
@@ -45,10 +57,11 @@ int main() {
     out_file.close();
     std::cout << "Results written to random_walk_results.csv\n";
 
-    // Optional: compute average
+    // Compute and print average
     uint64_t total_steps = 0;
     for (auto steps : steps_to_zero) total_steps += steps;
-    std::cout << "Average steps to reach 0: " << (double)total_steps / num_simulations << "\n";
+    std::cout << "Average steps to reach 0: "
+              << (double)total_steps / num_simulations << "\n";
 
     return 0;
 }
