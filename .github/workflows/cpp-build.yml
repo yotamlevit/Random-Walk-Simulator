@@ -1,23 +1,40 @@
-name: C/C++ CI
+name: Build Random Walk Simulator
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main, master ]
 
 jobs:
-  build:
-
+  build-linux:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential libomp-dev
+      - name: Build with make
+        run: make
+      - name: Save executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: random_walk_simulator-linux
+          path: random_walk_simulator
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: mingw-w64-x86_64-gcc make mingw-w64-x86_64-openmp
+      - name: Build with make (MSYS2)
+        shell: msys2 {0}
+        run: make
+      - name: Save executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: random_walk_simulator-windows
+          path: random_walk_simulator.exe
