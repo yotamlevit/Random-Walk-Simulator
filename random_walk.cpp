@@ -9,7 +9,7 @@
 
 // === CONFIG ===
 const int64_t num_simulations = 1'000'000;
-const int64_t progress_interval = 10'000;
+const int64_t progress_interval = 1'000;
 const int start_index_offset = 0;  // For partial runs
 const std::string output_prefix = "thread_";  // Output: thread_0_output.csv, etc.
 const int default_thread_count = 12;
@@ -36,8 +36,7 @@ int main() {
 
         int thread_id = omp_get_thread_num();
         std::random_device rd;
-        std::mt19937 gen(rd() ^ thread_id);
-        std::uniform_real_distribution<> dis(0.0, 1.0);
+        std::mt19937_64 gen(rd() ^ (thread_id + 1));  // 64-bit engine
 
         std::vector<std::pair<int64_t, uint64_t>> local_buffer;
         int64_t local_counter = 0;
@@ -51,9 +50,19 @@ int main() {
         for (int64_t i = 0; i < num_simulations; ++i) {
             int pos = 5;
             uint64_t steps = 0;
+            uint64_t bit_buffer = 0;
+            int bit_index = 64;
+
             while (pos > 0) {
-                double rnd = dis(gen);
-                pos += (rnd < 0.5) ? -1 : 1;
+                if (bit_index == 64) {
+                    bit_buffer = gen();  // Generate 64 bits
+                    bit_index = 0;
+                }
+
+                bool move_right = (bit_buffer >> bit_index) & 1;
+                pos += move_right ? 1 : -1;
+
+                ++bit_index;
                 ++steps;
             }
 
