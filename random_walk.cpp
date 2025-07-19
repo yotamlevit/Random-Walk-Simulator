@@ -46,7 +46,7 @@ int main() {
         #pragma omp critical
         std::cout << "[Thread " << thread_id << "] Started.\n";
 
-        #pragma omp for schedule(dynamic, 1000)
+        #pragma omp for schedule(dynamic, 1)
         for (int64_t i = 0; i < num_simulations; ++i) {
             int pos = 5;
             uint64_t steps = 0;
