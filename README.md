@@ -124,7 +124,7 @@ Total runtime: 45.23 seconds
 
 ## License
 
-[MIT License](LICENSE) (add your license here)
+[MIT License](LICENSE) (https://www.apache.org/licenses/LICENSE-2.0)
 
 ---
 
