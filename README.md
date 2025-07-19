@@ -1,4 +1,4 @@
-# Random-Walk-Simulator
+# Random Walk Simulator
 
 **Random Walk Simulator** is a high-performance, parallelized C++ program for simulating millions of random walks using OpenMP. Designed for scalability and speed, it outputs step statistics for each walk into per-thread CSV files for easy analysis.
 
@@ -11,6 +11,39 @@
 - 📝 **Per-Thread Output:** Each thread writes to its own output file.
 - 🔎 **Progress Reporting:** Console progress updates per thread.
 - 🔧 **Configurable:** Easily adjust number of walks, threads, and output settings.
+- 🎲 **Advanced Random Number Generation:** Each thread uses an independent, high-quality 64-bit Mersenne Twister engine with efficient bit-buffering for maximal speed and statistical quality.
+
+---
+
+## Technical Details: Random Number Generation
+
+This simulator uses a **64-bit Mersenne Twister engine** (`std::mt19937_64`) to generate high-quality random numbers.  
+Each thread creates its own random engine, seeded with a mix of `std::random_device` and the thread ID for independence between threads.
+
+Instead of generating a new random number for every step, the simulator **buffers 64 random bits at once**. Each bit determines the next move (left or right), making the process much faster by reducing calls to the random engine.
+
+**Advantages:**
+
+- **High Quality:** `std::mt19937_64` provides a long period and excellent randomness properties, avoiding biases that simpler RNGs might introduce.
+- **Thread-Safe:** Each thread maintains its own random engine, eliminating contention or repeated results.
+- **Efficient:** By buffering 64 bits at a time, the program dramatically reduces overhead from random number generation—critical for massive simulations.
+
+**Why not use rand() or a simpler approach?**
+
+- Standard `rand()` has poor randomness quality and a short period, leading to patterns and bias in large simulations.
+- Using per-thread random engines and bit-buffering maximizes both performance and statistical reliability.
+
+---
+
+## Technical Details: Parallelization
+
+To maximize efficiency and scalability, the simulator assigns **one random walk per job** in the parallel loop, rather than batching multiple walks together. This fine-grained approach has several benefits:
+
+- **Dynamic Load Balancing:** By assigning a single walk per job, OpenMP can dynamically distribute work among threads, preventing idle threads and making sure the workload is balanced—even if some walks take much longer than others.
+- **Scalability:** Fine-grained jobs scale better as the number of threads or simulations increases.
+- **Responsiveness:** Progress reporting and data flushing are more frequent and granular, providing better real-time feedback.
+
+This strategy is especially effective for workloads with unpredictable or highly variable processing times per simulation.
 
 ---
 
